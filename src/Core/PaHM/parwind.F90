@@ -2662,80 +2662,80 @@ MODULE ParWind
 
 ! -----------------------------------------------------------------------------
 ! Jerome test distance to save computing cycles ... like in GetHollandFields ...
-      if(1==1) then
-        ! Radius of the last closed isobar
-        rrp = iRrp(stCnt, jl1) + &
-                wtRatio * (iRrp(stCnt, jl2) - iRrp(stCnt, jl1))
+!     if(1==1) then
+!       ! Radius of the last closed isobar
+!       rrp = iRrp(stCnt, jl1) + &
+!               wtRatio * (iRrp(stCnt, jl2) - iRrp(stCnt, jl1))
 
-        ! Radius of maximum winds
-        rmmw = iRmw(stCnt, jl1) + &
-                wtRatio * (iRmw(stCnt, jl2) - iRmw(stCnt, jl1))
-        
-        !Limit
-        rrp=max(rrp,0.d0)
-        rmmw=max(rmmw,0.d0)
+!       ! Radius of maximum winds
+!       rmmw = iRmw(stCnt, jl1) + &
+!               wtRatio * (iRmw(stCnt, jl2) - iRmw(stCnt, jl1))
+!       
+!       !Limit
+!       rrp=max(rrp,0.d0)
+!       rmmw=max(rmmw,0.d0)
 
-        vmax = iSpeed(stCnt, jl1) + &
-                wtRatio * (iSpeed(stCnt, jl2) - iSpeed(stCnt, jl1))
+!       vmax = iSpeed(stCnt, jl1) + &
+!               wtRatio * (iSpeed(stCnt, jl2) - iSpeed(stCnt, jl1))
 
-        !JEROME Get The Rossby number (just informative)
-        call RossbyNumber(vmax*KT2MS, rmmw*NM2M, coriolis, RossNum)
+!       !JEROME Get The Rossby number (just informative)
+!       call RossbyNumber(vmax*KT2MS, rmmw*NM2M, coriolis, RossNum)
 
-        !Check
-        write(16,*)'Rossby Number=',RossNum
-        write(16,*)'rrp,rmw=',rrp,rmmw
-        write(16,*)'time_stamp,stormNumber',time_stamp,stormNumber(stCnt, jl1)
-        write(16,*)'lon,lat',clon,clat
-        if(rrp/=rrp.or.rmmw/=rmmw) then
-          write(16,*)'GetGAHMFields- nan(2):',rrp,rmmw
-!          write(errmsg,*)'GetHollandFields- nan(2):',rrp,rmmw
-!          call parallel_abort(errmsg)
-          lrevert=.true.
-        endif
+!       !Check
+!       write(16,*)'Rossby Number=',RossNum
+!       write(16,*)'rrp,rmw=',rrp,rmmw
+!       write(16,*)'time_stamp,stormNumber',time_stamp,stormNumber(stCnt, jl1)
+!       write(16,*)'lon,lat',clon,clat
+!       if(rrp/=rrp.or.rmmw/=rmmw) then
+!         write(16,*)'GetGAHMFields- nan(2):',rrp,rmmw
+!!         write(errmsg,*)'GetHollandFields- nan(2):',rrp,rmmw
+!!         call parallel_abort(errmsg)
+!         lrevert=.true.
+!       endif
 
-        write(16,*)'min &max dist (nm) =',minval(dist),maxval(dist)
-        !YJZ: limit rad;  I don't understand why distance can be <0
-        where(dist<1.d-5) dist=1.d-5
+!       write(16,*)'min &max dist (nm) =',minval(dist),maxval(dist)
+!       !YJZ: limit rad;  I don't understand why distance can be <0
+!       where(dist<1.d-5) dist=1.d-5
 
-        ! ... and the indices of the nodal points where rad <= rrp
-        ! JEROME note : both dist and rrp are in nm units !! 
-        radIDX = PACK([(i, i = 1, np_gb)], dist <= 1.5d0*rrp) !leave dim of radIDX undefined to receive values from pack()
-        maxRadIDX = SIZE(radIDX)
+!       ! ... and the indices of the nodal points where rad <= rrp
+!       ! JEROME note : both dist and rrp are in nm units !! 
+!       radIDX = PACK([(i, i = 1, np_gb)], dist <= 1.5d0*rrp) !leave dim of radIDX undefined to receive values from pack()
+!       maxRadIDX = SIZE(radIDX)
 
-      ! If the condition rad <= rrp is not satisfied anywhere then exit this loop
-        IF (maxRadIDX == 0) THEN
-          WRITE(tmpStr1, '(f20.3)') rrp
-          tmpStr1 = '(rrp = ' // TRIM(ADJUSTL(tmpStr1)) // ' nm)'
-          WRITE(16, '(a)') 'No nodal points found inside the radius of the last closed isobar ' // &
-                           TRIM(ADJUSTL(tmpStr1)) // ' for storm: ' // &
-                           TRIM(ADJUSTL(stormName(stCnt, jl1)))
-!          CALL LogMessage(INFO, scratchMessage)
-          EXIT
-        END IF
+!     ! If the condition rad <= rrp is not satisfied anywhere then exit this loop
+!       IF (maxRadIDX == 0) THEN
+!         WRITE(tmpStr1, '(f20.3)') rrp
+!         tmpStr1 = '(rrp = ' // TRIM(ADJUSTL(tmpStr1)) // ' nm)'
+!         WRITE(16, '(a)') 'No nodal points found inside the radius of the last closed isobar ' // &
+!                          TRIM(ADJUSTL(tmpStr1)) // ' for storm: ' // &
+!                          TRIM(ADJUSTL(stormName(stCnt, jl1)))
+!!          CALL LogMessage(INFO, scratchMessage)
+!         EXIT
+!       END IF
 
-        !From now on, rrp>=0.1
-        !Check
-        write(16,*)'rad:',size(dist),rrp,rmmw,maxRadIDX !,radIDX
-        tmp2=sum(dist)/np_gb
-        if(maxRadIDX/=maxRadIDX.or.tmp2/=tmp2) then
-          write(16,*)'GetGAHMFields- nan(3):',maxRadIDX,tmp2
-!          write(errmsg,*)'GetHollandFields- nan(3):',maxRadIDX,tmp2
-!          call parallel_abort(errmsg)
-          lrevert=.true.
-        endif
-        if(maxRadIDX>0) then
-          tmp2=sum(radIDX)/np_gb
-          if(tmp2/=tmp2) then
-            write(16,*)'GetGAHMFields- nan(4):',tmp2
-!            write(errmsg,*)'GetHollandFields- nan(4):',tmp2
-!            call parallel_abort(errmsg)
-            lrevert=.true.
-          endif
-        endif
-        
-      endif
-! End Jerome, same logic like in GetHollandFields
-! -----------------------------------------------------------------------------
+!       !From now on, rrp>=0.1
+!       !Check
+!       write(16,*)'rad:',size(dist),rrp,rmmw,maxRadIDX !,radIDX
+!       tmp2=sum(dist)/np_gb
+!       if(maxRadIDX/=maxRadIDX.or.tmp2/=tmp2) then
+!         write(16,*)'GetGAHMFields- nan(3):',maxRadIDX,tmp2
+!!          write(errmsg,*)'GetHollandFields- nan(3):',maxRadIDX,tmp2
+!!          call parallel_abort(errmsg)
+!         lrevert=.true.
+!       endif
+!       if(maxRadIDX>0) then
+!         tmp2=sum(radIDX)/np_gb
+!         if(tmp2/=tmp2) then
+!           write(16,*)'GetGAHMFields- nan(4):',tmp2
+!!            write(errmsg,*)'GetHollandFields- nan(4):',tmp2
+!!            call parallel_abort(errmsg)
+!           lrevert=.true.
+!         endif
+!       endif
+!       
+!     endif
+!! End Jerome, same logic like in GetHollandFields
+!! -----------------------------------------------------------------------------
 
       uTransNow = uTrans(stCnt, jl1) + wtratio * (uTrans(stCnt, jl2) - utrans(stCnt, jl1))
       vTransNow = vTrans(stCnt, jl1) + wtratio * (vTrans(stCnt, jl2) - vTrans(stCnt, jl1))
